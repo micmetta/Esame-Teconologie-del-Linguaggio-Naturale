@@ -1,0 +1,4 @@
+#Ho utilizzzato la sim del coseno per scoprire gli NPOS di ogni classe (migliore in assoluto)
+num_documenti_predetto_correttamente:  26
+NUM_DOCUMENTI_DI_TEST_TOTALI:  40
+Accuratezza finale:  0.65

@@ -1,0 +1,6 @@
+num_synsets_predetti_correttamente:  21
+num_synsets_predetti_in_totale:  41
+Accuratezza finale sistema:  0.5121951219512195
+
+media_delle_distanze_tra_i_synsets_gold_sbagliati_e_i_synsets_predetti_in_maniera_errata:  8.3
+dev_std_delle_distanze_tra_i_synsets_gold_sbagliati_e_i_synsets_predetti_in_maniera_errata:  4.417012565071555

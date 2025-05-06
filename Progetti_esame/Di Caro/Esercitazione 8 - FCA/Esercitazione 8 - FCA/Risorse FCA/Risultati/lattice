@@ -1,0 +1,50 @@
+// <Lattice object of 7 atoms 11 concepts 7 coatoms at 0x20c2345fa48>
+digraph Lattice {
+	node [label="" shape=circle style=filled width=.25]
+	edge [dir=none labeldistance=1.5 minlen=2]
+	c0
+	c1
+	c1 -> c1 [color=transparent headlabel=influence labelangle=270]
+	c1 -> c1 [color=transparent labelangle=90 taillabel=conj]
+	c1 -> c0
+	c2
+	c2 -> c2 [color=transparent headlabel=British labelangle=270]
+	c2 -> c2 [color=transparent labelangle=90 taillabel=compound]
+	c2 -> c0
+	c3
+	c3 -> c3 [color=transparent headlabel=allowed labelangle=270]
+	c3 -> c3 [color=transparent labelangle=90 taillabel=ROOT]
+	c3 -> c0
+	c4
+	c4 -> c4 [color=transparent headlabel=spread labelangle=270]
+	c4 -> c4 [color=transparent labelangle=90 taillabel=ccomp]
+	c4 -> c0
+	c5
+	c5 -> c5 [color=transparent headlabel=outside labelangle=270]
+	c5 -> c5 [color=transparent labelangle=90 taillabel=prep]
+	c5 -> c0
+	c6
+	c6 -> c6 [color=transparent headlabel=directly labelangle=270]
+	c6 -> c6 [color=transparent labelangle=90 taillabel=advmod]
+	c6 -> c0
+	c7
+	c7 -> c7 [color=transparent headlabel="expansion rules" labelangle=270]
+	c7 -> c7 [color=transparent labelangle=90 taillabel=nsubj]
+	c7 -> c0
+	c8
+	c8 -> c8 [color=transparent headlabel="cultural controlled" labelangle=270]
+	c8 -> c8 [color=transparent labelangle=90 taillabel=amod]
+	c8 -> c2
+	c9
+	c9 -> c9 [color=transparent headlabel="Empire football areas" labelangle=270]
+	c9 -> c9 [color=transparent labelangle=90 taillabel=pobj]
+	c9 -> c1
+	c10
+	c10 -> c3
+	c10 -> c4
+	c10 -> c5
+	c10 -> c6
+	c10 -> c7
+	c10 -> c8
+	c10 -> c9
+}

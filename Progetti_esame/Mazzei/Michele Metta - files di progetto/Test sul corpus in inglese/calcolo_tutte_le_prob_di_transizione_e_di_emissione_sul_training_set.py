@@ -1,0 +1,704 @@
+import numpy as np
+import importlib
+import json
+
+
+Estrazione_dati_BIO_tagging_Wikipedia_en = importlib.import_module("Estrazione_dati_BIO_tagging_Wikipedia_it_e_en")
+Calcolo_metriche_en = importlib.import_module("Calcolo_metriche")
+tecniche_smoothing_en = importlib.import_module("Smoothing")
+
+
+
+def parola_di_input_presente_nel_training_set(parola, frasi_traing_con_tags):
+    for frase in frasi_traing_con_tags:
+        frase = frase.split(" ")
+        frase[-1:] = []  # elimino l'ultimo elemento della lista perchè sarebbe '' e quindi non serve a nulla.
+        #print("frase: ", frase)
+        for i in range(0, len(frase)):
+            parola_corrente = frase[i].split("\t")[0]
+            if(parola_corrente == parola):
+                return True #parola non sconosciuta
+
+    return False #la parola è sconosciuta
+
+
+
+
+#La funzione di sotto aggiorna il dizionario a_s_primo_s andando a posizionare per ogni tag la probabilità che quel tag si trovi all'inizio di una frase
+def calcolatore_prob_a_0_s(frasi_corpus, tag_possibili, a_s_primo_s):
+    # a_s_primo_s = {
+    #     # B-PER:
+    #     "B-PER|S": 0, "B-PER|B-PER": 0, "I-PER|B-PER": 0, "B-ORG|B-PER": 0, "I-ORG|B-PER": 0, "B-LOC|B-PER": 0,
+    #     "I-LOC|B-PER": 0, "B-MISC|B-PER": 0, "I-MISC|B-PER": 0, "O|B-PER": 0, "E|B-PER": 0,
+    #     # I-PER:
+    #     "I-PER|S": 0, "B-PER|I-PER": 0, "I-PER|I-PER": 0, "B-ORG|I-PER": 0, "I-ORG|I-PER": 0, "B-LOC|I-PER": 0,
+    #     "I-LOC|I-PER": 0, "B-MISC|I-PER": 0, "I-MISC|I-PER": 0, "O|I-PER": 0, "E|I-PER": 0,
+    #     # B-ORG:
+    #     "B-ORG|S": 0, "B-PER|B-ORG": 0, "I-PER|B-ORG": 0, "B-ORG|B-ORG": 0, "I-ORG|B-ORG": 0, "B-LOC|B-ORG": 0,
+    #     "I-LOC|B-ORG": 0, "B-MISC|B-ORG": 0, "I-MISC|B-ORG": 0, "O|B-ORG": 0, "E|B-ORG": 0,
+    #     # I-ORG:
+    #     "I-ORG|S": 0, "B-PER|I-ORG": 0, "I-PER|I-ORG": 0, "B-ORG|I-ORG": 0, "I-ORG|I-ORG": 0, "B-LOC|I-ORG": 0,
+    #     "I-LOC|I-ORG": 0, "B-MISC|I-ORG": 0, "I-MISC|I-ORG": 0, "O|I-ORG": 0, "E|I-ORG": 0,
+    #     # B-LOC:
+    #     "B-LOC|S": 0, "B-PER|B-LOC": 0, "I-PER|B-LOC": 0, "B-ORG|B-LOC": 0, "I-ORG|B-LOC": 0, "B-LOC|B-LOC": 0,
+    #     "I-LOC|B-LOC": 0, "B-MISC|B-LOC": 0, "I-MISC|B-LOC": 0, "O|B-LOC": 0, "E|B-LOC": 0,
+    #     # I-LOC:
+    #     "I-LOC|S": 0, "B-PER|I-LOC": 0, "I-PER|I-LOC": 0, "B-ORG|I-LOC": 0, "I-ORG|I-LOC": 0, "B-LOC|I-LOC": 0,
+    #     "I-LOC|I-LOC": 0, "B-MISC|I-LOC": 0, "I-MISC|I-LOC": 0, "O|I-LOC": 0, "E|I-LOC": 0,
+    #     # B-MISC:
+    #     "B-MISC|S": 0, "B-PER|B-MISC": 0, "I-PER|B-MISC": 0, "B-ORG|B-MISC": 0, "I-ORG|B-MISC": 0, "B-LOC|B-MISC": 0,
+    #     "I-LOC|B-MISC": 0, "B-MISC|B-MISC": 0, "I-MISC|B-MISC": 0, "O|B-MISC": 0, "E|B-MISC": 0,
+    #     # I-MISC:
+    #     "I-MISC|S": 0, "B-PER|I-MISC": 0, "I-PER|I-MISC": 0, "B-ORG|I-MISC": 0, "I-ORG|I-MISC": 0, "B-LOC|I-MISC": 0,
+    #     "I-LOC|I-MISC": 0, "B-MISC|I-MISC": 0, "I-MISC|I-MISC": 0, "O|I-MISC": 0, "E|I-MISC": 0,
+    #     # O:
+    #     "O|S": 0, "B-PER|O": 0, "I-PER|O": 0, "B-ORG|O": 0, "I-ORG|O": 0, "B-LOC|O": 0, "I-LOC|O": 0, "B-MISC|O": 0,
+    #     "I-MISC|O": 0, "O|O": 0, "E|O": 0,
+    # }
+
+    C_start = len(frasi_corpus)
+    #print("C_start: ", C_start)
+    for s in tag_possibili:
+        #devo calcolare queste probabilità:
+        #se ad esempio s = B-PER allora calcolerò:
+        # P(B-PER|Start) = C(B-PER,Start)/C(start)
+        # [ - dove C(B-PER, Start) è il numero di volte in cui il tag B-PER è comparso all'inizio della frase
+        #     nel mio dataset.
+        #   - dove C(start) è il numero totale di volte in cui il tag
+        #     Start compare nel mio dataset e quindi praticamente sarà il numero totale di frasi
+        #     presenti nel mio dataset
+        # ].
+        #calcolo allora P(s|Start) = C(s,Start)/C(start):
+        C_s_and_Start = 0
+        for frase in frasi_corpus:
+            frase = frase.split(" ")
+            prima_parola_della_frase = frase[0]
+            #print("prima_parola_della_frase: ", prima_parola_della_frase)
+            tag_prima_parola_della_frase = prima_parola_della_frase.split("\t")[1]
+            #print("tag_prima_parola_della_frase: ", tag_prima_parola_della_frase)
+            if(s == tag_prima_parola_della_frase):
+                C_s_and_Start = C_s_and_Start + 1
+
+        #tag_possibili = ["B-PER", "I-PER", "B-ORG", "I-ORG", "B-LOC", "I-LOC", "B-MISC", "I-MISC", "O"]
+        if(s == "B-PER"):
+            print("Il numero di volte in cui B-PER compare all'inizio di una frase è: ", C_s_and_Start)
+            p_B_PER_dato_Start = C_s_and_Start / C_start
+            a_s_primo_s["B-PER|S"] = p_B_PER_dato_Start
+
+        elif(s == "I-PER"):
+            print("Il numero di volte in cui I-PER compare all'inizio di una frase è: ", C_s_and_Start)
+            p_I_PER_dato_Start = C_s_and_Start / C_start
+            a_s_primo_s["I-PER|S"] = p_I_PER_dato_Start
+
+        elif(s == "B-ORG"):
+            print("Il numero di volte in cui B-ORG compare all'inizio di una frase è: ", C_s_and_Start)
+            p_B_ORG_dato_Start = C_s_and_Start / C_start
+            a_s_primo_s["B-ORG|S"] = p_B_ORG_dato_Start
+
+        elif (s == "I-ORG"):
+            print("Il numero di volte in cui I-ORG compare all'inizio di una frase è: ", C_s_and_Start)
+            p_I_ORG_dato_Start = C_s_and_Start / C_start
+            a_s_primo_s["I-ORG|S"] = p_I_ORG_dato_Start
+
+        elif (s == "B-LOC"):
+            print("Il numero di volte in cui B-LOC compare all'inizio di una frase è: ", C_s_and_Start)
+            p_B_LOC_dato_Start = C_s_and_Start / C_start
+            a_s_primo_s["B-LOC|S"] = p_B_LOC_dato_Start
+
+        elif(s == "I-LOC"):
+            print("Il numero di volte in cui I-LOC compare all'inizio di una frase è: ", C_s_and_Start)
+            p_I_LOC_dato_Start = C_s_and_Start / C_start
+            a_s_primo_s["I-LOC|S"] = p_I_LOC_dato_Start
+
+        elif(s == "B-MISC"):
+            print("Il numero di volte in cui B-MISC compare all'inizio di una frase è: ", C_s_and_Start)
+            p_B_MISC_dato_Start = C_s_and_Start / C_start
+            a_s_primo_s["B-MISC|S"] = p_B_MISC_dato_Start
+
+        elif(s == "I-MISC"):
+            print("Il numero di volte in cui I-MISC compare all'inizio di una frase è: ", C_s_and_Start)
+            p_I_MISC_dato_Start = C_s_and_Start / C_start
+            a_s_primo_s["I-MISC|S"] = p_I_MISC_dato_Start
+
+        else:
+            print("Il numero di volte in cui O compare all'inizio di una frase è: ", C_s_and_Start)
+            p_O_dato_Start = C_s_and_Start / C_start
+            a_s_primo_s["O|S"] = p_O_dato_Start
+
+    # print("")
+    # print("Dizionario con le probabilità iniziali per ogni tag: ", a_s_primo_s)
+    return a_s_primo_s
+
+
+def calcolatore_prob_a_s_primo_s(frasi_corpus, tag_possibili, a_s_primo_s):
+    # adesso devo calcolare queste prob. di transizione:
+    #a_s_primo_s = {
+        #     # B-PER:
+        #     "B-PER|B-PER": 0, "I-PER|B-PER": 0, "B-ORG|B-PER": 0, "I-ORG|B-PER": 0, "B-LOC|B-PER": 0,
+        #     "I-LOC|B-PER": 0, "B-MISC|B-PER": 0, "I-MISC|B-PER": 0, "O|B-PER": 0, "E|B-PER": 0,
+
+        #     # I-PER:
+        #     "B-PER|I-PER": 0, "I-PER|I-PER": 0, "B-ORG|I-PER": 0, "I-ORG|I-PER": 0, "B-LOC|I-PER": 0,
+        #     "I-LOC|I-PER": 0, "B-MISC|I-PER": 0, "I-MISC|I-PER": 0, "O|I-PER": 0, "E|I-PER": 0,
+
+        #     # B-ORG:
+        #     "B-PER|B-ORG": 0, "I-PER|B-ORG": 0, "B-ORG|B-ORG": 0, "I-ORG|B-ORG": 0, "B-LOC|B-ORG": 0,
+        #     "I-LOC|B-ORG": 0, "B-MISC|B-ORG": 0, "I-MISC|B-ORG": 0, "O|B-ORG": 0, "E|B-ORG": 0,
+
+        #     # I-ORG:
+        #     "B-PER|I-ORG": 0, "I-PER|I-ORG": 0, "B-ORG|I-ORG": 0, "I-ORG|I-ORG": 0, "B-LOC|I-ORG": 0,
+        #     "I-LOC|I-ORG": 0, "B-MISC|I-ORG": 0, "I-MISC|I-ORG": 0, "O|I-ORG": 0, "E|I-ORG": 0,
+
+        #     # B-LOC:
+        #     "B-PER|B-LOC": 0, "I-PER|B-LOC": 0, "B-ORG|B-LOC": 0, "I-ORG|B-LOC": 0, "B-LOC|B-LOC": 0,
+        #     "I-LOC|B-LOC": 0, "B-MISC|B-LOC": 0, "I-MISC|B-LOC": 0, "O|B-LOC": 0, "E|B-LOC": 0,
+
+        #     # I-LOC:
+        #     "B-PER|I-LOC": 0, "I-PER|I-LOC": 0, "B-ORG|I-LOC": 0, "I-ORG|I-LOC": 0, "B-LOC|I-LOC": 0,
+        #     "I-LOC|I-LOC": 0, "B-MISC|I-LOC": 0, "I-MISC|I-LOC": 0, "O|I-LOC": 0, "E|I-LOC": 0,
+
+        #     # B-MISC:
+        #     "B-PER|B-MISC": 0, "I-PER|B-MISC": 0, "B-ORG|B-MISC": 0, "I-ORG|B-MISC": 0, "B-LOC|B-MISC": 0,
+        #     "I-LOC|B-MISC": 0, "B-MISC|B-MISC": 0, "I-MISC|B-MISC": 0, "O|B-MISC": 0, "E|B-MISC": 0,
+
+        #     # I-MISC:
+        #     "B-PER|I-MISC": 0, "I-PER|I-MISC": 0, "B-ORG|I-MISC": 0, "I-ORG|I-MISC": 0, "B-LOC|I-MISC": 0,
+        #     "I-LOC|I-MISC": 0, "B-MISC|I-MISC": 0, "I-MISC|I-MISC": 0, "O|I-MISC": 0, "E|I-MISC": 0,
+
+        #     # O:
+        #     "B-PER|O": 0, "I-PER|O": 0, "B-ORG|O": 0, "I-ORG|O": 0, "B-LOC|O": 0, "I-LOC|O": 0, "B-MISC|O": 0,
+        #     "I-MISC|O": 0, "O|O": 0, "E|O": 0,
+        # }
+
+    # adesso devo calcolare queste prob. di transizione (esercizio semplice):
+    # "N|N":0, "N|V":0, "N|A":0, "N|D":0,
+    # "V|N":0, "V|V":0, "V|A":0, "V|D":0,
+    # "A|N":0, "A|V":0, "A|A":0, "A|D":0,
+    # "D|N":0, "D|V":0, "D|A":0, "D|D":0,
+    # "E|N":0, "E|V":0, "E|A":0, "E|D":0, #E=End (stato nascosto finale)
+    #es: P(N|V) = C(N,V)/C(V)
+    #ove:
+    #C(N,V) = numero di volte che nel corpus il tag N è comparso subito dopo il tag V.
+    #C(V) = numero di volte in cui nel corspus è comparso il tag V.
+    #dizionario_tags = {"N":0, "V":0, "A":0, "D":0} #conterrà per ogni tag il C(tag). (la "E" l'aggiungo successivamente)
+    dizionario_tags = {"B-PER":0, "I-PER":0, "B-ORG":0, "I-ORG":0, "B-LOC":0, "I-LOC":0, "B-MISC":0, "I-MISC":0, "O":0}
+    for tag_destro in tag_possibili:
+        comparse_tag_destro_nel_corpus = 0
+        # calcolo il numero di volte in cui il tag_destro è comparso nel corpus (all'inizio il tag destro sarà B-PER, nella seconda iterata sarà invece I-PER, e così via..):
+        for frase in frasi_corpus:
+            frase = frase.split(" ")
+            frase[-1:]=[] #elimino l'ultimo elemento della lista perchè sarebbe '' e quindi non serve a nulla.
+            #print("frase: ", frase)
+            for parola in frase:
+                tag_parola_corrente = parola.split("\t")[1]
+                if (tag_destro == tag_parola_corrente):
+                    comparse_tag_destro_nel_corpus += 1
+        dizionario_tags[tag_destro] = comparse_tag_destro_nel_corpus
+        # print("tag_destro: ", tag_destro)
+        # print("comparse_tag_destro_nel_corpus: ", comparse_tag_destro_nel_corpus)
+        # print("")
+    # print("")
+    # print("dizionario_tags: ", dizionario_tags)
+    ###################################################################################################################################################################
+    # a questo punto nel dizionario_tags avrò praticamente il C(tag) per ogni tag possibile.
+    # Adesso posso calcolare tutte le C(N|N), C(V|N), C(A|N) e C(D|N) dove N,V,A e D sono presenti nella variabile tag_sinistro.
+    # per calcolare ad esempio la C(N|N) mi serve sapere quante volte nel corpus il tag N è stato assegnato ad una parola successiva ad una parola a cui era già stato assegnato il tag N
+    # e per farlo faccio così:##########################################################################################
+
+    #questo dizionario mi servirà per memorizzare tutti i C(ti|ti-1):####
+    # dizionario_tags_condizionati = {
+    #     "N|N": 0, "N|V": 0, "N|A": 0, "N|D": 0,
+    #     "V|N": 0, "V|V": 0, "V|A": 0, "V|D": 0,
+    #     "A|N": 0, "A|V": 0, "A|A": 0, "A|D": 0,
+    #     "D|N": 0, "D|V": 0, "D|A": 0, "D|D": 0,
+    #     "E|N": 0, "E|V": 0, "E|A": 0, "E|D": 0, #il calcolo di quest'ultima riga la farò successivamente.
+    # }
+    #il calcolo delle righe dove c'è E|tag lo farò successivamente.
+    dizionario_tags_condizionati = {
+            # B-PER:
+            "B-PER|B-PER": 0, "I-PER|B-PER": 0, "B-ORG|B-PER": 0, "I-ORG|B-PER": 0, "B-LOC|B-PER": 0,
+            "I-LOC|B-PER": 0, "B-MISC|B-PER": 0, "I-MISC|B-PER": 0, "O|B-PER": 0, "E|B-PER": 0,
+
+            # I-PER:
+            "B-PER|I-PER": 0, "I-PER|I-PER": 0, "B-ORG|I-PER": 0, "I-ORG|I-PER": 0, "B-LOC|I-PER": 0,
+            "I-LOC|I-PER": 0, "B-MISC|I-PER": 0, "I-MISC|I-PER": 0, "O|I-PER": 0, "E|I-PER": 0,
+
+            # B-ORG:
+            "B-PER|B-ORG": 0, "I-PER|B-ORG": 0, "B-ORG|B-ORG": 0, "I-ORG|B-ORG": 0, "B-LOC|B-ORG": 0,
+            "I-LOC|B-ORG": 0, "B-MISC|B-ORG": 0, "I-MISC|B-ORG": 0, "O|B-ORG": 0, "E|B-ORG": 0,
+
+            # I-ORG:
+            "B-PER|I-ORG": 0, "I-PER|I-ORG": 0, "B-ORG|I-ORG": 0, "I-ORG|I-ORG": 0, "B-LOC|I-ORG": 0,
+            "I-LOC|I-ORG": 0, "B-MISC|I-ORG": 0, "I-MISC|I-ORG": 0, "O|I-ORG": 0, "E|I-ORG": 0,
+
+            # B-LOC:
+            "B-PER|B-LOC": 0, "I-PER|B-LOC": 0, "B-ORG|B-LOC": 0, "I-ORG|B-LOC": 0, "B-LOC|B-LOC": 0,
+            "I-LOC|B-LOC": 0, "B-MISC|B-LOC": 0, "I-MISC|B-LOC": 0, "O|B-LOC": 0, "E|B-LOC": 0,
+
+            # I-LOC:
+            "B-PER|I-LOC": 0, "I-PER|I-LOC": 0, "B-ORG|I-LOC": 0, "I-ORG|I-LOC": 0, "B-LOC|I-LOC": 0,
+            "I-LOC|I-LOC": 0, "B-MISC|I-LOC": 0, "I-MISC|I-LOC": 0, "O|I-LOC": 0, "E|I-LOC": 0,
+
+            # B-MISC:
+            "B-PER|B-MISC": 0, "I-PER|B-MISC": 0, "B-ORG|B-MISC": 0, "I-ORG|B-MISC": 0, "B-LOC|B-MISC": 0,
+            "I-LOC|B-MISC": 0, "B-MISC|B-MISC": 0, "I-MISC|B-MISC": 0, "O|B-MISC": 0, "E|B-MISC": 0,
+
+            # I-MISC:
+            "B-PER|I-MISC": 0, "I-PER|I-MISC": 0, "B-ORG|I-MISC": 0, "I-ORG|I-MISC": 0, "B-LOC|I-MISC": 0,
+            "I-LOC|I-MISC": 0, "B-MISC|I-MISC": 0, "I-MISC|I-MISC": 0, "O|I-MISC": 0, "E|I-MISC": 0,
+
+            # O:
+            "B-PER|O": 0, "I-PER|O": 0, "B-ORG|O": 0, "I-ORG|O": 0, "B-LOC|O": 0, "I-LOC|O": 0, "B-MISC|O": 0,
+            "I-MISC|O": 0, "O|O": 0, "E|O": 0,
+    }
+    ##########################################################################
+    for tag_destro in tag_possibili:
+        for tag_sinistro in tag_possibili:
+            conteggio_tag_sinistro_condizionato_tag_destro_correnti = 0
+            # print("tag_destro: ", tag_destro)
+            # print("tag_sinistro: ", tag_sinistro)
+            # print("")
+            #Nella prima iterata tag_destro = N e tag_sinistro = N.
+            #Adesso calcolo il C(N,N) = numero di volte che nel corpus il tag N è comparso subito dopo il tag N:
+            for frase in frasi_corpus:
+                #print("frase: ", frase)
+                frase = frase.split(" ")
+                frase[-1:] = []  # elimino l'ultimo elemento della lista perchè sarebbe '' e quindi non serve a nulla.
+                #print("frase splittata: ", frase)
+                for i in range(1, len(frase)): #devo partire dalla seconda parola della frase corrente del corpus perchè prima della prima
+                    #parola c'è lo start e quindi in questo codice non ci interessa e devo arrivare fino all'ultima parola.
+                    tag_parola_precedente = frase[i-1].split("\t")[1]
+                    tag_parola_corrente = frase[i].split("\t")[1]
+                    # print("tag_parola_precedente: ", tag_parola_precedente)
+                    # print("tag_parola_corrente: ", tag_parola_corrente)
+                    # print("")
+                    if (tag_parola_precedente == tag_destro and tag_parola_corrente == tag_sinistro):
+                        conteggio_tag_sinistro_condizionato_tag_destro_correnti += 1
+            #print("")
+            #print("conteggio_tag_sinistro_condizionato_tag_destro_correnti: ", conteggio_tag_sinistro_condizionato_tag_destro_correnti)
+            dizionario_tags_condizionati[tag_sinistro+"|"+tag_destro] = conteggio_tag_sinistro_condizionato_tag_destro_correnti
+    ####################################################################################################################
+
+    #Adesso calcolo l'ultima riga del dizionario ovvero le prob. che un certo tag#################################
+    # si trovi alla fine di una frase --> dizionario_tags_condizionati = {"E|N": 0, "E|V": 0, "E|A": 0, "E|D": 0,}
+    # es: P(E|N) = C(E,N)/C(E)
+    # ove
+    # C(E,N) = numero di volte in cui il tag N è comparso per l'ultima parola di una frase
+    # C(E) = numero totale di volte in cui il tag E è comparso dopo l'ultima parola di una frase ovvero len(num totale di frasi del corpus)
+    C_E = len(frasi_corpus)
+    dizionario_tags["E"] = C_E #AGGIUNGO QUI LA CHIAVE "E" CHE STA AD INDICARE IL TAG End.
+
+    #calcoloC(E,s) dove s scorre tutti i tag possibili(N,V,A,D):
+    for tag in tag_possibili:
+        conteggio_delle_volte_in_cui_il_tag_corrente_compare_alla_fine_della_frase = 0
+        for frase in frasi_corpus:
+            frase = frase.split(" ")
+            frase[-1:] = [] # elimino l'ultimo elemento della lista perchè sarebbe '' e quindi non serve a nulla.
+            #print("frase: ", frase)
+            ultima_parola_con_tag_frase_corrente = frase[-1] #mi posiziono sull'ultima parola della frase corrente del corpus, ad
+            #esempio per la frase 'Giovanni/N ama/V i/D cani/N' avrò ultima_parola_con_tag_frase_corrente = cani/N
+            #print("ultima_parola_con_tag_frase_corrente: ", ultima_parola_con_tag_frase_corrente)
+            tag_ultima_parola = ultima_parola_con_tag_frase_corrente.split("\t")[1] #per avere N (per la parola cani/N)
+            #print("tag_ultima_parola: ", tag_ultima_parola)
+            #print("")
+            if(tag_ultima_parola == tag):
+                conteggio_delle_volte_in_cui_il_tag_corrente_compare_alla_fine_della_frase += 1
+        dizionario_tags_condizionati["E|"+tag] = conteggio_delle_volte_in_cui_il_tag_corrente_compare_alla_fine_della_frase
+        # print("Numero di volte in cuil il tag "+tag+" è comparso alla fine di una frase: ", conteggio_delle_volte_in_cui_il_tag_corrente_compare_alla_fine_della_frase)
+        # print("")
+    print("dizionario_tags_condizionati: ")
+    print(dizionario_tags_condizionati)
+    print("")
+    ###############################################################################################################
+
+
+    #Adesso finalmente posso calcolare le probabilità di tutte le transizioni:
+    # "N|N":0, "N|V":0, "N|A":0, "N|D":0,
+    # "V|N":0, "V|V":0, "V|A":0, "V|D":0,
+    # "A|N":0, "A|V":0, "A|A":0, "A|D":0,
+    # "D|N":0, "D|V":0, "D|A":0, "D|D":0,
+    # "E|N": 0, "E|V": 0, "E|A": 0, "E|D": 0,
+    # es: P(N|V) = C(N,V)/C(V)
+    # ove:
+    # C(N,V) = numero di volte che nel corpus il tag N è comparso subito dopo il tag V.
+    # C(V) = numero di volte in cui nel corspus è comparso il tag V.
+    # prob_di_transizione = {
+    #     "N|N": 0, "N|V": 0, "N|A": 0, "N|D": 0,
+    #     "V|N": 0, "V|V": 0, "V|A": 0, "V|D": 0,
+    #     "A|N": 0, "A|V": 0, "A|A": 0, "A|D": 0,
+    #     "D|N": 0, "D|V": 0, "D|A": 0, "D|D": 0,
+    #     "E|N": 0, "E|V": 0, "E|A": 0, "E|D": 0,
+    # }
+    #Arrivato a questo punto invece di usare la lista tag_possibili devo considerare un'altra lista di tag che è uguale a quella di prima ma che ha in più il tag E(End):
+    tag_possibili_con_END = tag_possibili.copy() #faccio copy perchè altrimenti qualora modificassi tag_possibili_con_END modificherei anche tag_possibili.
+    tag_possibili_con_END.append("E")
+    #print("tag_possibili: ", tag_possibili)
+    for tag_destro in tag_possibili:
+        #print("dizionario_tags[" + tag_destro + "]:")
+        for tag_sinistro in tag_possibili_con_END:
+            #print("dizionario_tags_condizionati["+tag_sinistro+"|"+tag_destro+"]:")
+            #print(dizionario_tags_condizionati[tag_sinistro+"|"+tag_destro])
+            #print(dizionario_tags[tag_destro])
+            a_s_primo_s[tag_sinistro+"|"+tag_destro] = dizionario_tags_condizionati[tag_sinistro+"|"+tag_destro]/dizionario_tags[tag_destro]
+        # print("")
+        # print("")
+        # print("")
+    # print("prob_di_transizione:")
+    # print(a_s_primo_s)
+    # print("")
+    # print("")
+    # for tag_destro in tag_possibili:
+    #     for tag_sinistro in tag_possibili_con_END:
+    #         print("prob_di_transizione["+tag_sinistro+"|"+tag_destro+"]")
+    #         print(a_s_primo_s[tag_sinistro+"|"+tag_destro])
+    #     print("")
+    #     print("")
+
+    return a_s_primo_s
+
+
+
+def calcolo_prob_di_emissione(parola,frasi_corpus,dizionario_count_tags):
+    #Per ogni tag, devo calcolare quanto è probabile che alla parola di input nel corpus sia stato associato il tag corrente.
+    #esempio P(wi|ti) = P("Paolo"|N) = C("Paolo",N)/C(N)
+    #ove:
+    # - C("Paolo",N) = numero di volte che la parola "Paolo" è stata taggata come N (nome) nel corpus.
+    # - C(N) = numero di volte che il tag N è stato associato ad una parola nel corpus.
+    #b_s_o_t = {"N": 0, "V": 0, "A": 0, "D": 0}
+
+    # Questo qui sotto è un dizionario che mi dirà per ogni possibile tag qual è la probabilità che la parola data in input possa essere taggata con quel tag specifico,
+    # è anche detta prob. di emissione per ogni tag della parola che viene data in input alla funzione.
+    b_s_o_t = {"B-PER":0, "I-PER":0,
+               "B-ORG":0, "I-ORG":0,
+               "B-LOC":0, "I-LOC":0,
+               "B-MISC":0,"I-MISC":0,
+               "O":0
+               }
+    ################################################ CALCOLO b_s_o_1: ##################################################
+    #devo scorrere tutte le parole del corpus:
+    num_tag_B_PER_per_la_parola_di_input = 0
+    num_tag_I_PER_per_la_parola_di_input = 0
+    num_tag_B_ORG_per_la_parola_di_input = 0
+    num_tag_I_ORG_per_la_parola_di_input = 0
+    num_tag_B_LOC_per_la_parola_di_input = 0
+    num_tag_I_LOC_per_la_parola_di_input = 0
+    num_tag_B_MISC_per_la_parola_di_input = 0
+    num_tag_I_MISC_per_la_parola_di_input = 0
+    num_tag_O_per_la_parola_di_input = 0
+
+    # print("len(frasi_corpus): ", len(frasi_corpus))
+    # print("")
+
+    for frase in frasi_corpus:
+        frase = frase.split(" ")
+        frase[-1:] = []  # elimino l'ultimo elemento della lista perchè sarebbe '' e quindi non serve a nulla.
+        #print("frase: ", frase)
+        for i in range(0, len(frase)):
+            parola_corrente = frase[i].split("\t")[0]
+            tag_assegnato_alla_parola_corrente = frase[i].split("\t")[1]
+
+            if(parola_corrente == parola):
+
+                if (tag_assegnato_alla_parola_corrente == "B-PER"):
+                    num_tag_B_PER_per_la_parola_di_input += 1
+                elif (tag_assegnato_alla_parola_corrente == "I-PER"):
+                    num_tag_I_PER_per_la_parola_di_input += 1
+                elif (tag_assegnato_alla_parola_corrente == "B-ORG"):
+                    num_tag_B_ORG_per_la_parola_di_input += 1
+                elif (tag_assegnato_alla_parola_corrente == "I-ORG"):
+                    num_tag_I_ORG_per_la_parola_di_input += 1
+                elif (tag_assegnato_alla_parola_corrente == "B-LOC"):
+                    num_tag_B_LOC_per_la_parola_di_input += 1
+                elif (tag_assegnato_alla_parola_corrente == "I-LOC"):
+                    num_tag_I_LOC_per_la_parola_di_input += 1
+                elif (tag_assegnato_alla_parola_corrente == "B-MISC"):
+                    num_tag_B_MISC_per_la_parola_di_input += 1
+                elif (tag_assegnato_alla_parola_corrente == "I-MISC"):
+                    num_tag_I_MISC_per_la_parola_di_input += 1
+                else:
+                    num_tag_O_per_la_parola_di_input += 1
+    ##############################
+
+    b_s_o_t["B-PER"] = num_tag_B_PER_per_la_parola_di_input / dizionario_count_tags["B-PER"]
+    b_s_o_t["I-PER"] = num_tag_I_PER_per_la_parola_di_input / dizionario_count_tags["I-PER"]
+    b_s_o_t["B-ORG"] = num_tag_B_ORG_per_la_parola_di_input / dizionario_count_tags["B-ORG"]
+    b_s_o_t["I-ORG"] = num_tag_I_ORG_per_la_parola_di_input / dizionario_count_tags["I-ORG"]
+    b_s_o_t["B-LOC"] = num_tag_B_LOC_per_la_parola_di_input / dizionario_count_tags["B-LOC"]
+    b_s_o_t["I-LOC"] = num_tag_I_LOC_per_la_parola_di_input / dizionario_count_tags["I-LOC"]
+    b_s_o_t["B-MISC"] = num_tag_B_MISC_per_la_parola_di_input / dizionario_count_tags["B-MISC"]
+    b_s_o_t["I-MISC"] = num_tag_I_MISC_per_la_parola_di_input / dizionario_count_tags["I-MISC"]
+    b_s_o_t["O"] = num_tag_O_per_la_parola_di_input / dizionario_count_tags["O"]
+
+    # print("parola: ", parola)
+    # print("num_tag_B-PER_per_la_parola_di_input: ", num_tag_B_PER_per_la_parola_di_input)
+    # print("num_tag_I-PER_per_la_parola_di_input: ", num_tag_I_PER_per_la_parola_di_input)
+    # print("num_tag_B-ORG_per_la_parola_di_input: ", num_tag_B_ORG_per_la_parola_di_input)
+    # print("num_tag_I-ORG_per_la_parola_di_input: ", num_tag_I_ORG_per_la_parola_di_input)
+    # print("num_tag_B-LOC_per_la_parola_di_input: ", num_tag_B_LOC_per_la_parola_di_input)
+    # print("num_tag_I-LOC_per_la_parola_di_input: ", num_tag_I_LOC_per_la_parola_di_input)
+    # print("num_tag_B-MISC_per_la_parola_di_input: ", num_tag_B_MISC_per_la_parola_di_input)
+    # print("num_tag_I-MISC_per_la_parola_di_input: ", num_tag_I_MISC_per_la_parola_di_input)
+    # print("num_tag_O_per_la_parola_di_input: ", num_tag_O_per_la_parola_di_input)
+    # print("")
+    # print("dizionario_count_tags[B-PER]: ", dizionario_count_tags["B-PER"])
+    # print("dizionario_count_tags[I-PER]: ", dizionario_count_tags["I-PER"])
+    # print("dizionario_count_tags[B-ORG]: ", dizionario_count_tags["B-ORG"])
+    # print("dizionario_count_tags[I-ORG]: ", dizionario_count_tags["I-ORG"])
+    # print("dizionario_count_tags[B-LOC]: ", dizionario_count_tags["B-LOC"])
+    # print("dizionario_count_tags[I-LOC]: ", dizionario_count_tags["I-LOC"])
+    # print("dizionario_count_tags[B-MISC]: ", dizionario_count_tags["B-MISC"])
+    # print("dizionario_count_tags[I-MISC]: ", dizionario_count_tags["I-MISC"])
+    # print("dizionario_count_tags[O]: ", dizionario_count_tags["O"])
+
+    # QUI FACCIO LO SMOOTHING:####
+    # if (parola_di_input_presente_nel_training_set(parola) == False): #In questo script per la parola sconosciuta non
+    #     print("LA PAROLA " + parola + " NON è PRESENTE NEL TRAINING SET!!")
+    #     #b_s_o_t = tecniche_smoothing.sempre_O(b_s_o_t)
+    #     print("b_s_o_t della parola mancante: ", b_s_o_t)
+    #     # b_s_o_t = tecniche_smoothing.O_B_MISC_stessa_prob(b_s_o_t)
+    #     # b_s_o_t = tecniche_smoothing.uniforme_su_tutti_i_tags(b_s_o_t)
+    ##############################
+    # print("")
+    # print("b_s_o_t (PRIMA DELL'ESPONENZIALE): ")
+    # print(b_s_o_t)
+    # print("")
+    # print("")
+    # print("")
+    ####################################################################################################################
+    # calcolo gli esponenziali delle probabilità di emissione per far sì che i valori restituiti come probabilità di emissione non siano troppo piccoli:
+
+    # for key in b_s_o_t:#scorro tutte le chiavi del dizionario.
+    #     #print("b_s_o_t[key]: ", b_s_o_t[key])
+    #     if (b_s_o_t[key] != 0):
+    #         b_s_o_t[key] = np.exp(b_s_o_t[key])
+
+    # print("b_s_o_t (DOPO AVER APPLICATO L'ESPONENZIALE): ")
+    # print(b_s_o_t)
+    # print("")
+    # print("")
+    # print("")
+    #################################################################################################################################################
+
+    return b_s_o_t
+
+
+
+
+#MAIN: ####################################################
+frasi_train, tag_possibili, dizionario_indice_numerico_tag, dizionario_per_passare_dal_tag_al_numero, a_s_primo_s = Estrazione_dati_BIO_tagging_Wikipedia_en.caricamento_dati_BIO_tagging_en()
+dizionario_count_tags = Estrazione_dati_BIO_tagging_Wikipedia_en.calcolo_C_s(frasi_train) #Questa funzione mi permette di poter calcolare per ogni possible tag il Count(tag) ovvero il numero di volte in cui un certo tag è
+#stato assegnato ad una parola del training set.
+
+print("FRASI DI TRAINING:")
+print("prima frase train: ")
+print(frasi_train[0])
+print("Numero totale di frasi:", len(frasi_train))
+print("")
+
+###### QUESTA PARTE MI SERVIRA' PER PRENDERE TUTTE LE PROBABILITA' DI TRANSIZIONE DAL TRAINING SET. ######
+
+a_s_primo_s = calcolatore_prob_a_0_s(frasi_train, tag_possibili, a_s_primo_s) #con questa funzione sono sicuro che tutte le prob. della prima riga di a_s_primo_s sono state calcolate (ovvero quelle partendo dallo start)
+print("")
+print("Dizionario con le probabilità iniziali per ogni tag: ", a_s_primo_s)
+print("")
+
+
+#adesso devo calcolare queste altre prob. di transizione (ovvero tutte quelle presenti tra lo start(non compreso perchè l'ho già fatto prima) e l'end (compreso) sempre del dizionario a_s_primo_s:################################################
+# a_s_primo_s = {
+    #     # B-PER:
+    #     "B-PER|B-PER": 0, "I-PER|B-PER": 0, "B-ORG|B-PER": 0, "I-ORG|B-PER": 0, "B-LOC|B-PER": 0,
+    #     "I-LOC|B-PER": 0, "B-MISC|B-PER": 0, "I-MISC|B-PER": 0, "O|B-PER": 0, "E|B-PER": 0,
+    #     # I-PER:
+    #     "B-PER|I-PER": 0, "I-PER|I-PER": 0, "B-ORG|I-PER": 0, "I-ORG|I-PER": 0, "B-LOC|I-PER": 0,
+    #     "I-LOC|I-PER": 0, "B-MISC|I-PER": 0, "I-MISC|I-PER": 0, "O|I-PER": 0, "E|I-PER": 0,
+    #     # B-ORG:
+    #     "B-PER|B-ORG": 0, "I-PER|B-ORG": 0, "B-ORG|B-ORG": 0, "I-ORG|B-ORG": 0, "B-LOC|B-ORG": 0,
+    #     "I-LOC|B-ORG": 0, "B-MISC|B-ORG": 0, "I-MISC|B-ORG": 0, "O|B-ORG": 0, "E|B-ORG": 0,
+    #     # I-ORG:
+    #     "B-PER|I-ORG": 0, "I-PER|I-ORG": 0, "B-ORG|I-ORG": 0, "I-ORG|I-ORG": 0, "B-LOC|I-ORG": 0,
+    #     "I-LOC|I-ORG": 0, "B-MISC|I-ORG": 0, "I-MISC|I-ORG": 0, "O|I-ORG": 0, "E|I-ORG": 0,
+    #     # B-LOC:
+    #     "B-PER|B-LOC": 0, "I-PER|B-LOC": 0, "B-ORG|B-LOC": 0, "I-ORG|B-LOC": 0, "B-LOC|B-LOC": 0,
+    #     "I-LOC|B-LOC": 0, "B-MISC|B-LOC": 0, "I-MISC|B-LOC": 0, "O|B-LOC": 0, "E|B-LOC": 0,
+    #     # I-LOC:
+    #     "B-PER|I-LOC": 0, "I-PER|I-LOC": 0, "B-ORG|I-LOC": 0, "I-ORG|I-LOC": 0, "B-LOC|I-LOC": 0,
+    #     "I-LOC|I-LOC": 0, "B-MISC|I-LOC": 0, "I-MISC|I-LOC": 0, "O|I-LOC": 0, "E|I-LOC": 0,
+    #     # B-MISC:
+    #     "B-PER|B-MISC": 0, "I-PER|B-MISC": 0, "B-ORG|B-MISC": 0, "I-ORG|B-MISC": 0, "B-LOC|B-MISC": 0,
+    #     "I-LOC|B-MISC": 0, "B-MISC|B-MISC": 0, "I-MISC|B-MISC": 0, "O|B-MISC": 0, "E|B-MISC": 0,
+    #     # I-MISC:
+    #     "B-PER|I-MISC": 0, "I-PER|I-MISC": 0, "B-ORG|I-MISC": 0, "I-ORG|I-MISC": 0, "B-LOC|I-MISC": 0,
+    #     "I-LOC|I-MISC": 0, "B-MISC|I-MISC": 0, "I-MISC|I-MISC": 0, "O|I-MISC": 0, "E|I-MISC": 0,
+    #     # O:
+    #     "B-PER|O": 0, "I-PER|O": 0, "B-ORG|O": 0, "I-ORG|O": 0, "B-LOC|O": 0, "I-LOC|O": 0, "B-MISC|O": 0,
+    #     "I-MISC|O": 0, "O|O": 0, "E|O": 0,
+    # }
+a_s_primo_s = calcolatore_prob_a_s_primo_s(frasi_train, tag_possibili, a_s_primo_s)
+print("a_s_primo_s: ")
+print(a_s_primo_s)
+print("")
+print("")
+print("PROBABILITA' DI TRANSIZIONE FINALI: ")
+tag_possibili_con_END = tag_possibili.copy() #faccio copy perchè altrimenti qualora modificassi tag_possibili_con_END modificherei anche tag_possibili. (in realtà questa cosa mi è servita già nel calcolo della funzione calcolatore_prob_a_s_primo_s).
+tag_possibili_con_END.append("E")
+for tag_destro in tag_possibili:
+    for tag_sinistro in tag_possibili_con_END:
+        print("a_s_primo_s["+tag_sinistro+"|"+tag_destro+"]")
+        print(a_s_primo_s[tag_sinistro+"|"+tag_destro])
+    print("")
+print("")
+print("")
+
+
+#Serializzo il dizionario a_s_primo_s:
+# Dumping it to file
+with open('a_s_primo_s.json', 'w') as json_file:
+    json.dump(a_s_primo_s, json_file)
+######################################
+
+
+
+'''
+#Deserializzo il dizionario a_s_primo_s:
+# Loading it from file
+with open('a_s_primo_s.json', 'r') as json_file:
+    a_s_primo_s = json.load(json_file)
+
+
+# #Deserializzo il dizionario_con_prob_di_emissione_di_parole_gia_considerate:
+# # Loading it from file
+# with open('dizionario per la tecnica di smoothing con distribuzione uniforme/dizionario_con_prob_di_emissione_di_parole_gia_considerate.json', 'r') as json_file:
+#     dizionario_con_prob_di_emissione_di_parole_gia_considerate = json.load(json_file)
+# ############################################################################
+
+
+#MODIFICHE CHE TOLGONO I PROBLEMI:
+# a_s_primo_s["I-LOC|O"] = 1e-80
+# a_s_primo_s["I-PER|O"] = 1e-80
+# a_s_primo_s["I-ORG|O"] = 1e-80
+# a_s_primo_s["B-LOC|B-MISC"] = 1e-80
+#
+# a_s_primo_s["I-PER|S"] = 1e-80
+# a_s_primo_s["I-ORG|S"] = 1e-80
+# a_s_primo_s["I-LOC|S"] = 1e-80
+# a_s_primo_s["I-MISC|S"] = 1e-80
+
+#'I-MISC|O': 0.00017278337562573476 (calcolata dal Training set), quindi dal training set non ottengo proprio 0.
+
+# Questo codice mi serve per assegnare una prob. bassissima a tutte le prob. di transizione che hanno prob. pari a 0.
+for k, v in a_s_primo_s.items():
+    #print(k+": " + str(v))
+    if(a_s_primo_s[k] == 0):
+        a_s_primo_s[k] = 1e-80
+###################################################################################################################
+'''
+
+################################
+
+# print("")
+# print("")
+# print("a_s_primo_s (DOPO LA DESERIALIZZAZIONE): ")
+# print(a_s_primo_s)
+# print("")
+# print("")
+
+
+# print("PROBABILITA' DI TRANSIZIONE FINALI: ")
+# tag_possibili_con_END = tag_possibili.copy() #faccio copy perchè altrimenti qualora modificassi tag_possibili_con_END modificherei anche tag_possibili. (in realtà questa cosa mi è servita già nel calcolo della funzione calcolatore_prob_a_s_primo_s).
+# tag_possibili_con_END.append("E")
+# for tag_destro in tag_possibili:
+#     for tag_sinistro in tag_possibili_con_END:
+#         print("a_s_primo_s["+tag_sinistro+"|"+tag_destro+"]")
+#         print(a_s_primo_s[tag_sinistro+"|"+tag_destro])
+#     print("")
+# print("")
+# print("")
+#######################################
+
+
+
+#########################################################################################################################################################################################################################################################
+
+#CALCOLO UNA VOLTA SOLA TUTTE LE PROB. DI EMISSIONE DI TUTTE LE PAROLE NEL TEST SET:
+#Calcolo le probabilità di emissione (Questo devo farlo per ogni frase presente nel test set): #############################################
+b_s_o_t = {
+           "B-PER":0, "I-PER":0,
+           "B-ORG":0, "I-ORG":0,
+           "B-LOC":0, "I-LOC":0,
+           "B-MISC":0,"I-MISC":0,
+           "O":0
+           }
+frasi_test_set = Estrazione_dati_BIO_tagging_Wikipedia_en.frasi_test_set_en()
+# - CREA PRIMA LA FUNZIONE CHE CALCOLA LE METRICE COME ACCURACY, RECALL E PRECISION E POI FAI QUELLO DETTO SOTTO.
+# - ADESSO DEVI CONSIDERARE TUTTE LE FRASI DI TEST (MAGARI PROVA PRIMA SOLO CON LE PRIME DUE FRASI.. E VEDI COSA SUCCEDE).
+
+
+# Per il momento lo faccio SOLO PER LE PRIME DUE FRASI del test set.
+# FALLO DIRETTAMENTE PER LE PRIME DUE FRASI COSI FAI PRIMA
+
+#num_frasi_considerate = 0
+tags_assegnati_a_tutte_le_frasi_di_test = [] #mi servirà per memorizzare tutte le predizioni fatte per tutte le frasi di test (puoi crearlo dinamicamente con numpy)
+#Creo un dizionario che tiene conto delle parole per le quali sono stati già calcolate le prob. di emissione, in questo modo velocizzo l'algoritmo in quanto
+#per le parole per cui è già stata calcolata la prob. di emissione non dovrò ricalcolarla nuovamente. (Più l'algoritmo considera nuove parole e più la prob. che la velocità di esecuzione aumenti si incrementa)
+# Esempio di come sarà il dizionario di dizionari:
+# dizionario_con_prob_di_emissione_di_parole_gia_considerate = {"parola1":{b_s_o_t_parola_1},
+#                                                               "parola2":{b_s_o_t_parola_2}
+#                                                               }
+dizionario_con_prob_di_emissione_di_parole_gia_considerate = {} #dizionario di dizionari
+
+for frase_test in frasi_test_set:
+    #if(num_frasi_considerate < 3): #considero solo le prime 3 frasi di test
+    #print("frase_test: ")
+    #print(frase_test)
+    lista_di_prob_di_emissione = []
+    frase_test_splittata_per_singola_parola = frase_test.split(" ")
+    frase_test_splittata_per_singola_parola[-1:] = [] # elimino l'ultimo elemento della lista perchè sarebbe '' e quindi non serve a nulla.
+    print("frase_test_splittata_per_singola_parola: ")
+    print(frase_test_splittata_per_singola_parola)
+    #print("")
+    #print("")
+    for i in range(0, len(frase_test_splittata_per_singola_parola)):
+        parola_frase_test_con_tag = frase_test.split(" ")[i]
+        parola_frase_test = parola_frase_test_con_tag.split("\t")[0]
+        #print("parola_frase_test: ", parola_frase_test)
+        if ((parola_frase_test in dizionario_con_prob_di_emissione_di_parole_gia_considerate) == False):
+            # se entro qui vuol dire che le prob. di emissione per la parola corrente ancora non le ho calcolate e quindi lo faccio ora.
+
+            # Adesso però se mi accorgo che la parola corrente non è presente nel training set non calcolo la sua prob. di emissione
+            # perchè questa dipenderà da quale tecnica di smoothing utilizzerò e quindi per tutte le parole sconosciute le prob. di
+            # emissione le calcolerò nei vari script che utilizzeranno le varie tecniche.
+            if (parola_di_input_presente_nel_training_set(parola_frase_test, frasi_train) == True):
+                b_s_o_t = calcolo_prob_di_emissione(parola_frase_test,frasi_train, dizionario_count_tags)
+                dizionario_con_prob_di_emissione_di_parole_gia_considerate[parola_frase_test] = b_s_o_t
+            else:
+                print("La parola "+parola_frase_test+" è sconosciuta.")
+        else:
+            # se entro qui vuol dire che posso subito prendere le prob. di emissione per la parola corrente perchè sono state già calcolate.
+            b_s_o_t = dizionario_con_prob_di_emissione_di_parole_gia_considerate[parola_frase_test]
+        lista_di_prob_di_emissione.append(b_s_o_t) #il primo elemento della lista sarà la prob. di emissione della prima parola della frase di test (quindi ad es. nell'esercizio giocattolo era "Paolo")
+    # print("")
+    # print("")
+    # print("")
+    # print("")
+    # print("lista_di_prob_di_emissione per ogni tag per ogni parola della frase di input:")
+    # print(lista_di_prob_di_emissione)
+    # print("")
+    # print("")
+    #############################################################################################################################################
+
+#####################################################################
+
+#Serializzo il dizionario_con_prob_di_emissione_di_parole_gia_considerate in modo tale che dalla volta successiva le avrò già tutte a disposizione:
+# Dumping it to file
+print("dizionario_con_prob_di_emissione_di_parole_gia_considerate: ")
+print(dizionario_con_prob_di_emissione_di_parole_gia_considerate)
+# with open('Test delle varie tecniche di smoothing/tecnica sempre O/', 'w') as json_file:
+#     json.dump(dizionario_con_prob_di_emissione_di_parole_gia_considerate, json_file)
+# print("Il dizionario che contiene le prob. di emissione già calcolate è stato serializzato correttamente.")
+
+with open("dizionario_con_prob_di_emissione_di_parole_gia_considerate.json", 'w') as json_file:
+    json.dump(dizionario_con_prob_di_emissione_di_parole_gia_considerate, json_file)
+print("Il dizionario che contiene le prob. di emissione già calcolate è stato serializzato correttamente.")
+###################################################################################################################################################
+
+

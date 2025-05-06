@@ -1,0 +1,37 @@
+0   Harry   B-PER
+1   Potter  I-PER
+2   's  O
+3   real    O
+4   home    O
+5   is  O
+6   Hogwarts    B-LOC
+7   Castle  I-LOC
+8   .   O
+
+0   Harry   B-PER
+1   told    O
+2   her O
+3   about   O
+4   their   O
+5   meeting O
+6   in  O
+7   Diagon  B-LOC
+8   Alley   I-LOC
+9   .   O
+
+0   Mr. B-PER
+1   Dursley I-PER
+2   was O
+3   the O
+4   director    O
+5   of  O
+6   a   O
+7   firm    O
+8   called  O
+9   Grunnings   B-ORG
+10  ,   O
+11  which   O
+12  made    O
+13  drills  O
+14  .   O
+

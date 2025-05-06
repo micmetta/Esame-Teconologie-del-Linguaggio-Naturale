@@ -1,0 +1,43 @@
+Animals are multicellular, eukaryotic organisms in the biological kingdom Animalia.
+With few exceptions, animals consume organic material, breathe oxygen, are able to move, can reproduce sexually, and go through an ontogenetic stage in which their body consists of a hollow sphere of cells, the blastula, during embryonic development.
+The scientific study of animals is known as zoology.
+Most living animal species are in Bilateria, a clade whose members have a bilaterally symmetric body plan.
+The Bilateria include the protostomes, containing animals such as nematodes, arthropods, flatworms, annelids and molluscs, and the deuterostomes, containing the echinoderms and the chordates, the latter including the vertebrates.
+Life forms interpreted as early animals were present in the Ediacaran biota of the late Precambrian.
+Historically, Aristotle divided animals into those with blood and those without.
+Carl Linnaeus created the first hierarchical biological classification for animals in 1758 with his Systema Naturae, which Jean-Baptiste Lamarck expanded into 14 phyla by 1809.
+In 1874, Ernst Haeckel divided the animal kingdom into the multicellular Metazoa (now synonymous for Animalia) and the Protozoa, single-celled organisms no longer considered animals.
+In modern times, the biological classification of animals relies on advanced techniques, such as molecular phylogenetics, which are effective at demonstrating the evolutionary relationships between taxa.
+Humans make use of many animal species, such as for food (including meat, milk, and eggs), for materials (such as leather and wool), as pets, and as working animals including for transport.
+Dogs have been used in hunting, as have birds of prey, while many terrestrial and aquatic animals were hunted for sports.
+Nonhuman animals have appeared in art from the earliest times and are featured in mythology and religion.
+
+Football is a family of team sports that involve, to varying degrees, kicking a ball to score a goal.
+Unqualified, the word football normally means the form of football that is the most popular where the word is used.
+Sports commonly called football include association football (known as soccer in North America and Oceania); gridiron football (specifically American football or Canadian football); Australian rules football; rugby union and rugby league; and Gaelic football.
+These various forms of football share to varying extent common origins and are known as football codes.
+There are a number of references to traditional, ancient, or prehistoric ball games played in many different parts of the world.
+Contemporary codes of football can be traced back to the codification of these games at English public schools during the 19th century.
+The expansion and cultural influence of the British Empire allowed these rules of football to spread to areas of British influence outside the directly controlled Empire.
+By the end of the 19th century, distinct regional codes were already developing: Gaelic football, for example, deliberately incorporated the rules of local traditional football games in order to maintain their heritage.
+In 1888, The Football League was founded in England, becoming the first of many professional football associations.
+During the 20th century, several of the various kinds of football grew to become some of the most popular team sports in the world.
+
+Artificial intelligence (AI) is intelligence demonstrated by machines.
+AI research has been defined as the field of study of intelligent agents, which refers to any system that perceives its environment and takes actions that maximize its chance of achieving its goals.
+The term "artificial intelligence" had previously been used to describe machines that mimic and display "human" cognitive skills that are associated with the human mind, such as "learning" and "problem-solving".
+This definition has since been rejected by major AI researchers who now describe AI in terms of rationality and acting rationally, which does not limit how intelligence can be articulated.
+AI applications include advanced web search engines (e.g., Google), recommendation systems (used by YouTube, Amazon and Netflix), understanding human speech (such as Siri and Alexa), self-driving cars (e.g., Tesla), automated decision-making and competing at the highest level in strategic game systems (such as chess and Go).
+As machines become increasingly capable, tasks considered to require "intelligence" are often removed from the definition of AI, a phenomenon known as the AI effect.
+For instance, optical character recognition is frequently excluded from things considered to be AI, having become a routine technology.
+Artificial intelligence was founded as an academic discipline in 1956, and in the years since has experienced several waves of optimism, followed by disappointment and the loss of funding (known as an "AI winter"),followed by new approaches, success and renewed funding.
+AI research has tried and discarded many different approaches since its founding, including simulating the brain, modeling human problem solving, formal logic, large databases of knowledge and imitating animal behavior.
+In the first decades of the 21st century, highly mathematical-statistical machine learning has dominated the field, and this technique has proved highly successful, helping to solve many challenging problems throughout industry and academia.
+The various sub-fields of AI research are centered around particular goals and the use of particular tools.
+The traditional goals of AI research include reasoning, knowledge representation, planning, learning, natural language processing, perception, and the ability to move and manipulate objects.
+General intelligence (the ability to solve an arbitrary problem) is among the field's long-term goals.
+To solve these problems, AI researchers have adapted and integrated a wide range of problem-solving techniques – including search and mathematical optimization, formal logic, artificial neural networks, and methods based on statistics, probability and economics.
+AI also draws upon computer science, psychology, linguistics, philosophy, and many other fields.
+The field was founded on the assumption that human intelligence "can be so precisely described that a machine can be made to simulate it".
+This raised philosophical arguments about the mind and the ethical consequences of creating artificial beings endowed with human-like intelligence; these issues have previously been explored by myth, fiction and philosophy since antiquity.
+Computer scientists and philosophers have since suggested that AI may become an existential risk to humanity if its rational capacities are not steered towards beneficial goals.

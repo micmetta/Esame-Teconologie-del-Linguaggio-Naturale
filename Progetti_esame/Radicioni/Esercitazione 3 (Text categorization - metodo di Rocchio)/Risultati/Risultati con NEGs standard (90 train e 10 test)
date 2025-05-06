@@ -1,0 +1,4 @@
+#Approccio standard che mi fa ottenere i NEGs per ogni classe. (migliore in assoluto insieme all'approccio degli NPOS con la sim del coseno)
+num_documenti_predetto_correttamente:  26
+NUM_DOCUMENTI_DI_TEST_TOTALI:  40
+Accuratezza finale:  0.65

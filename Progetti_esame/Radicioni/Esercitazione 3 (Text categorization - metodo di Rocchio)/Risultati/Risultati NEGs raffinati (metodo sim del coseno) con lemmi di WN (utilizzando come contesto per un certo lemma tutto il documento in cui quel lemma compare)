@@ -1,0 +1,4 @@
+#Risultati ottenuti considerando come contesto per ogni lemma tutto il documento in cui esso è presente. (peggiore in assoluto)
+num_documenti_predetto_correttamente:  21
+NUM_DOCUMENTI_DI_TEST_TOTALI:  40
+Accuratezza finale:  0.525

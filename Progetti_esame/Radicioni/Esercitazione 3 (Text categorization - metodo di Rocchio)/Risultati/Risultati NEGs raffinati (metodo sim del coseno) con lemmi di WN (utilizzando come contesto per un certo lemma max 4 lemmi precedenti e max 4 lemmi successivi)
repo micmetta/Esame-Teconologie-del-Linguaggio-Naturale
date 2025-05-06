@@ -1,0 +1,4 @@
+#Risultati ottenuti considerando come contesto per ogni lemma max 4 lemmi precedenti e max 4 lemmi successivi. (migliore per l'esperimento usando i synsets)
+num_documenti_predetto_correttamente:  22
+NUM_DOCUMENTI_DI_TEST_TOTALI:  40
+Accuratezza finale:  0.55

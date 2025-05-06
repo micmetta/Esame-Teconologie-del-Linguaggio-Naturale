@@ -1,0 +1,40 @@
+0   La  O
+1   vera    O
+2   casa    O
+3   di  O
+4   Harry   B-PER
+5   Potter  I-PER
+6   è   O
+7   il  O
+8   castello    B-LOC
+9   di  I-LOC
+10  Hogwards    I-LOC
+11  .   O
+
+0   Harry   B-PER
+1   le  O
+2   raccontò    O
+3   del O
+4   loro    O
+5   incontro    O
+6   a   O
+7   Diagon  B-LOC
+8   Alley   I-LOC
+9   .   O
+
+0   Mr.  B-PER
+1   Dursley I-PER
+2   era O
+3   direttore   O
+4   di  O
+5   una O
+6   ditta   O
+7   di  O
+8   nome    O
+9   Grunnings  B-ORG
+10  ,   O
+11  che O
+12  frabbricava O
+13  trapani O
+14  .   O
+

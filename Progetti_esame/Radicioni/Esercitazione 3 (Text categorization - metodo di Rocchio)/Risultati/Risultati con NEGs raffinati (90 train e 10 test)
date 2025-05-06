@@ -1,0 +1,4 @@
+#Ho utilizzato la matrice di confusione per trovare i NPOS (peggioramento)
+num_documenti_predetto_correttamente:  25
+NUM_DOCUMENTI_DI_TEST_TOTALI:  40
+Accuratezza finale:  0.625
