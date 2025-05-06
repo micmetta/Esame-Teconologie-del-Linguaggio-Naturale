@@ -1,1 +1,1 @@
-# Esame-Tecnologie-del-Linguaggio-Naturale
+# In questo repository è presente la cartella "Progetti_esame" che contiene al proprio interno tutti i progetti dell'esame di Tecnologie del Linguaggio Naturale (TLN) suddivisi in base ai 3 professori del corso.
