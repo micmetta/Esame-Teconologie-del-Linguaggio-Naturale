@@ -1,1 +1,1 @@
-# Esame-Teconologie-del-Linguaggio-Naturale
+# Esame-Tecnologie-del-Linguaggio-Naturale
